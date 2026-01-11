@@ -17,6 +17,7 @@ interface Job {
   blogger_url: string;
   source: string;
   created_at: string;
+  keyword?: string;
 }
 
 export default function SharePage() {

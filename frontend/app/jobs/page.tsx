@@ -21,6 +21,7 @@ interface Job {
   sent_to_telegram: boolean
   sent_to_whatsapp: boolean
   blogger_url: string | null
+  keyword?: string
 }
 
 export default function JobsPage() {
