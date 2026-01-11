@@ -1,0 +1,10 @@
+Requirement already satisfied: websockets in c:\users\ibra.khaled\appdata\local\programs\python\python311\lib\site-packages (12.0)
+Collecting websockets
+  Downloading websockets-15.0.1-cp311-cp311-win_amd64.whl.metadata (7.0 kB)
+Downloading websockets-15.0.1-cp311-cp311-win_amd64.whl (176 kB)
+Installing collected packages: websockets
+  Attempting uninstall: websockets
+    Found existing installation: websockets 12.0
+    Uninstalling websockets-12.0:
+      Successfully uninstalled websockets-12.0
+Successfully installed websockets-15.0.1

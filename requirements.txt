@@ -1,0 +1,8 @@
+requests
+beautifulsoup4
+lxml
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+selenium>=4.0.0
+webdriver-manager

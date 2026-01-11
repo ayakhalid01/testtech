@@ -1,0 +1,37 @@
+name: Scheduled Job Scraping
+
+on:
+  schedule:
+    # Run every 6 hours (adjust as needed)
+    - cron: '0 */6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      max_jobs:
+        description: 'Maximum number of jobs to scrape'
+        required: false
+        default: '6'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Railway API
+        run: |
+          curl -X POST "${{ secrets.RAILWAY_API_URL }}/api/scrape" \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${{ secrets.API_SECRET_KEY }}" \
+            -d '{
+              "max_jobs": ${{ github.event.inputs.max_jobs || 6 }},
+              "sources": ["wuzzuf", "indeed"],
+              "upload_to_blogger": true,
+              "send_to_telegram": true,
+              "send_to_whatsapp": false,
+              "use_tinyurl": true,
+              "use_selenium_skills": false
+            }'
+      
+      - name: Log completion
+        run: echo "Scraping job triggered at $(date)"

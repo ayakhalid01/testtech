@@ -1,0 +1,29 @@
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-dotenv==1.0.0
+apscheduler==3.10.4
+
+# Database
+supabase==2.9.0
+psycopg2-binary==2.9.9
+
+# Web Scraping
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+selenium>=4.16.0
+webdriver-manager==4.0.1
+undetected-chromedriver==3.5.5
+
+# Google APIs
+google-api-python-client==2.116.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+
+# Security
+cryptography==42.0.0
+
+# Utilities
+pydantic==2.5.3
+apscheduler==3.10.4
