@@ -343,17 +343,19 @@ def get_keyword_image(keyword):
         print(f"📁 Created photos directory: {PHOTOS_DIR}")
         return ""
     
-    # Normalize keyword for searching (lowercase)
+    # Normalize keyword for searching (lowercase, flexible matching)
     keyword_lower = keyword.lower().strip()
+    # Also create version without special chars for better matching
+    keyword_clean = keyword_lower.replace("/", "").replace("_", "").replace(" ", "")
     
     # Common image extensions
     extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp']
     
     # Try multiple filename variations:
     # 1. Exact keyword (e.g., "Cyber Security" → "Cyber Security.png")
-    # 2. Lowercase (e.g., "IT" → "it.png")
+    # 2. Lowercase (e.g., "IT" → "it.png")  
     # 3. With underscores (e.g., "Cyber Security" → "cyber_security.png")
-    # 4. Title case (e.g., "it" → "IT.png")
+    # 4. Without special chars (e.g., "UI/UX" → "uiux.png")
     
     # Search all files in directory (case-insensitive)
     matching_file = None
@@ -367,35 +369,53 @@ def get_keyword_image(keyword):
         if ext.lower() not in extensions:
             continue
         
-        # Compare case-insensitive, allowing both spaces and underscores
-        name_lower = name_without_ext.lower().replace("_", " ")
-        keyword_compare = keyword_lower.replace("_", " ")
+        # Normalize filename for flexible comparison
+        name_lower = name_without_ext.lower()
+        name_clean = name_lower.replace("/", "").replace("_", "").replace(" ", "")
         
-        # Exact match (case-insensitive)
-        if name_lower == keyword_compare:
+        # Try multiple comparison strategies
+        # 1. Exact match (case-insensitive)
+        if name_lower == keyword_lower:
             matching_file = filename
+            print(f"   ✅ Exact match: '{filename}' for keyword '{keyword}'")
+            break
+        
+        # 2. Match without special characters (e.g., "ui/ux" matches "uiux.png")
+        if name_clean == keyword_clean and len(keyword_clean) >= 2:
+            matching_file = filename
+            print(f"   ✅ Clean match: '{filename}' for keyword '{keyword}'")
+            break
+        
+        # Compare allowing spaces and underscores to be interchangeable
+        name_spaced = name_lower.replace("_", " ")
+        keyword_spaced = keyword_lower.replace("_", " ")
+        
+        # 3. Exact match with space normalization
+        if name_spaced == keyword_spaced:
+            matching_file = filename
+            print(f"   ✅ Space-normalized match: '{filename}' for keyword '{keyword}'")
             break
         
         # Calculate match score for partial matching
         match_score = 0
         
         # Special handling for short keywords (2-3 chars like "IT", "QA", "UI")
-        if len(keyword_compare) <= 3:
-            if name_lower == keyword_compare:
+        if len(keyword_spaced) <= 3:
+            if name_lower == keyword_spaced:
                 match_score = 100  # Perfect short match
-            elif keyword_compare in name_lower.split():
+            elif keyword_spaced in name_lower.split():
                 match_score = 90  # Word match
-            elif keyword_compare in name_lower:
+            elif keyword_spaced in name_lower:
                 match_score = 50  # Contains match
         else:
             # Check if keyword contains filename or filename contains keyword
-            if keyword_compare in name_lower:
+            if keyword_spaced in name_lower:
                 match_score = len(name_lower) * 2  # Prefer longer matches
-            elif name_lower in keyword_compare:
+            elif name_lower in keyword_spaced:
                 match_score = len(name_lower) * 3  # Strong match
             
             # Check individual words (e.g., "Data Scientist" matches "data.png" or "scientist.png")
-            keyword_words = keyword_compare.split()
+            keyword_words = keyword_spaced.split()
             name_words = name_lower.split()
             
             for kw in keyword_words:
@@ -407,7 +427,7 @@ def get_keyword_image(keyword):
                             match_score += min(len(kw), len(nw)) * 2
             
             # Check stem matching (e.g., "tester"/"testing", "developer"/"development")
-            keyword_stem = keyword_compare.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
+            keyword_stem = keyword_spaced.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
             name_stem = name_lower.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
             if len(keyword_stem) >= 2 and keyword_stem == name_stem:  # Reduced from 3 to 2
                 match_score += len(keyword_stem) * 3
