@@ -48,6 +48,30 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # Get the directory where this script is located (for absolute paths)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+def verify_blogger_post(blog_url, max_retries=3):
+    """
+    Verify that the blog post is accessible and returns 200 OK.
+    Retries up to max_retries times with 2-second delays.
+    """
+    if not blog_url:
+        return False
+    
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(blog_url, timeout=10, allow_redirects=True)
+            if response.status_code == 200:
+                print(f"   ✅ Blog post verified: {blog_url}")
+                return True
+            else:
+                print(f"   ⚠️  Blog verification attempt {attempt + 1}/{max_retries}: Status {response.status_code}")
+            time.sleep(2)
+        except Exception as e:
+            print(f"   ⚠️  Blog verification attempt {attempt + 1}/{max_retries} failed: {e}")
+            time.sleep(2)
+    
+    print(f"   ❌ Blog post verification failed after {max_retries} attempts")
+    return False
+
 # Configuration - use absolute paths to ensure files are found even when run from backend/
 HISTORY_FILE = os.path.join(SCRIPT_DIR, "history.json")
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "today_jobs.txt")
@@ -1656,13 +1680,22 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
                         print(f"⚠️  Could not save post file for {job['title']}: {e}")
                 
                 # Post to Blogger only if upload=True and service available
+                posted_to_blogger = False
+                blog_link = None
+                
                 if upload and blogger_service:
                     print(f"   📤 Attempting to post to Blogger: {job['title']}")
                     real_url = post_to_blogger(blogger_service, job['title'], blog_html)
-                    from datetime import datetime
-                    now = datetime.now()
-                    year_month = f"{now.year}/{now.month:02d}"
-                    job['blog_link'] = real_url if real_url else f"{BLOG_DOMAIN}/{year_month}/{job['slug']}.html"
+                    
+                    # Verify the blog post is accessible
+                    if real_url and verify_blogger_post(real_url):
+                        blog_link = real_url
+                        posted_to_blogger = True
+                        job['blog_link'] = blog_link
+                        print(f"   ✅ Blog post verified and accessible")
+                    else:
+                        print(f"   ⚠️  Blog post failed verification, using original link")
+                        posted_to_blogger = False
                 elif upload and not blogger_service:
                     print(f"   ⚠️  Skipping Blogger post - service is None (auth failed)")
                 
@@ -1670,8 +1703,12 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
                 telegram_sent = False
                 whatsapp_sent = False
                 
-                # Use blog_link only if uploaded to blogger, otherwise use original link
-                message_link = job.get('blog_link') if (upload and blogger_service) else job['link']
+                # Use blog_link only if verified and uploaded, otherwise use original link
+                # Apply TinyURL to the appropriate link
+                if posted_to_blogger and blog_link:
+                    message_link = create_tinyurl(blog_link) if use_tinyurl else blog_link
+                else:
+                    message_link = create_tinyurl(job['link']) if use_tinyurl else job['link']
                 
                 if send_whatsapp:
                     message = format_message(job, message_link, use_tinyurl)
@@ -1683,6 +1720,9 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
                     message = format_message(job, message_link, use_tinyurl)
                     telegram_sent = send_to_telegram_channel(message)
                     job['sent_to_telegram'] = telegram_sent
+                
+                # Set posted_to_blogger flag for database
+                job['posted_to_blogger'] = posted_to_blogger
                 
                 new_jobs.append(job)
                 history.add(job['link'])  # Use add() for set, not append()
@@ -1953,14 +1993,22 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
                                     print(f"⚠️  Could not save post file for {title}: {e}")
 
                             # Post to Blogger only if upload=True and service available
+                            posted_to_blogger = False
+                            blog_link = None
+                            
                             if upload and blogger_service:
                                 print(f"   📤 Attempting to post to Blogger: {title}")
                                 real_url = post_to_blogger(blogger_service, title, blog_html)
-                                # Use current year/month for blog link
-                                from datetime import datetime
-                                now = datetime.now()
-                                year_month = f"{now.year}/{now.month:02d}"
-                                job_data['blog_link'] = real_url if real_url else f"{BLOG_DOMAIN}/{year_month}/{slug}.html"
+                                
+                                # Verify the blog post is accessible
+                                if real_url and verify_blogger_post(real_url):
+                                    blog_link = real_url
+                                    posted_to_blogger = True
+                                    job_data['blog_link'] = blog_link
+                                    print(f"   ✅ Blog post verified and accessible")
+                                else:
+                                    print(f"   ⚠️  Blog post failed verification, using original link")
+                                    posted_to_blogger = False
                             elif upload and not blogger_service:
                                 print(f"   ⚠️  Skipping Blogger post - service is None (auth failed)")
                             
@@ -1968,8 +2016,12 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
                             telegram_sent = False
                             whatsapp_sent = False
                             
-                            # Use blog_link only if uploaded to blogger, otherwise use original link
-                            message_link = job_data.get('blog_link') if (upload and blogger_service) else link
+                            # Use blog_link only if verified and uploaded, otherwise use original link
+                            # Apply TinyURL to the appropriate link
+                            if posted_to_blogger and blog_link:
+                                message_link = create_tinyurl(blog_link) if use_tinyurl else blog_link
+                            else:
+                                message_link = create_tinyurl(link) if use_tinyurl else link
                             
                             if send_whatsapp:
                                 message = format_message(job_data, message_link, use_tinyurl)
@@ -1981,6 +2033,9 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
                                 message = format_message(job_data, message_link, use_tinyurl)
                                 telegram_sent = send_to_telegram_channel(message)
                                 job_data['sent_to_telegram'] = telegram_sent
+                            
+                            # Set posted_to_blogger flag for database
+                            job_data['posted_to_blogger'] = posted_to_blogger
                             
                             new_jobs.append(job_data)
                             history.add(link)
