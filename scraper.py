@@ -1467,12 +1467,9 @@ def scrape_indeed_jobs(max_jobs=6, use_selenium_skills=False):
             print("   Using standard ChromeDriver...")
             driver = webdriver.Chrome(options=chrome_options)
         
-        # Search queries (expanded for Indeed)
-        search_queries = [
-            "IT", "Software", "Developer", "Backend", "Frontend",
-            "Python", "Java", "JavaScript", "Data", "Engineer",
-            "QA", "DevOps", "Cloud", "Mobile", "Full Stack"
-        ]
+        # Search queries - use same keywords as Wuzzuf for consistency
+        search_queries = list(SEARCH_KEYWORDS)
+        random.shuffle(search_queries)  # Randomize order
         
         for query in search_queries:
             # Don't break here - let it fetch all potential jobs
