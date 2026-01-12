@@ -55,6 +55,3 @@ client_secrets.json
 
 # Large files
 *.deb
-Photos By Keywords/*.png
-Photos By Keywords/*.jpg
-Photos By Keywords/*.jpeg
