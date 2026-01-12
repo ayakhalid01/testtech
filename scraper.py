@@ -525,8 +525,10 @@ def generate_blog_post_html(job):
         header_image = get_keyword_image(keyword)
         if header_image:
             print(f"   ✅ Image found for keyword '{keyword}'")
+            job['has_image'] = True
         else:
             print(f"   ⚠️  No image found for keyword '{keyword}'")
+            job['has_image'] = False
         
         # Job description
         description = job.get('description', 'Check job link for details')
@@ -1667,6 +1669,12 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
             "no_link": 0,
             "no_title": 0,
             "parse_error": 0
+        },
+        "images": {
+            "total_jobs": 0,
+            "with_image": 0,
+            "without_image": 0,
+            "image_matches": {}  # keyword -> image_filename
         }
     }
 
@@ -2236,6 +2244,25 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
         jobs_saved = len(new_jobs)
         duplicates_skipped = stats['skip_reasons'].get('duplicate', 0)
         
+        # Calculate image statistics
+        images_stats = {
+            'total_jobs': len(new_jobs),
+            'with_image': sum(1 for job in new_jobs if job.get('has_image', False)),
+            'without_image': sum(1 for job in new_jobs if not job.get('has_image', False)),
+            'image_by_keyword': {}
+        }
+        
+        # Track which keywords have images
+        for job in new_jobs:
+            keyword = job.get('keyword', 'Unknown')
+            has_image = job.get('has_image', False)
+            if keyword not in images_stats['image_by_keyword']:
+                images_stats['image_by_keyword'][keyword] = {'with_image': 0, 'without_image': 0}
+            if has_image:
+                images_stats['image_by_keyword'][keyword]['with_image'] += 1
+            else:
+                images_stats['image_by_keyword'][keyword]['without_image'] += 1
+        
         metadata = {
             'total_scraped': total_scraped,
             'jobs_saved': jobs_saved,
@@ -2243,7 +2270,8 @@ def scrape_jobs(upload=False, save_posts=True, use_selenium_skills=False, send_w
             'skip_reasons': stats['skip_reasons'],
             'keywords_found': keywords_found,
             'sources': sources,
-            'duration': round(duration, 2)
+            'duration': round(duration, 2),
+            'images': images_stats
         }
         
         log_data = {
