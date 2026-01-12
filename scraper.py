@@ -492,7 +492,12 @@ def generate_blog_post_html(job):
         
         # Get keyword-based image
         keyword = job.get('keyword', '').lower().strip()
+        print(f"   🖼️  Looking for image with keyword: '{keyword}'")
         header_image = get_keyword_image(keyword)
+        if header_image:
+            print(f"   ✅ Image found for keyword '{keyword}'")
+        else:
+            print(f"   ⚠️  No image found for keyword '{keyword}'")
         
         # Job description
         description = job.get('description', 'Check job link for details')
