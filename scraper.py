@@ -371,7 +371,7 @@ def get_keyword_image(keyword):
         name_lower = name_without_ext.lower().replace("_", " ")
         keyword_compare = keyword_lower.replace("_", " ")
         
-        # Exact match
+        # Exact match (case-insensitive)
         if name_lower == keyword_compare:
             matching_file = filename
             break
@@ -379,29 +379,38 @@ def get_keyword_image(keyword):
         # Calculate match score for partial matching
         match_score = 0
         
-        # Check if keyword contains filename or filename contains keyword
-        if keyword_compare in name_lower:
-            match_score = len(name_lower) * 2  # Prefer longer matches
-        elif name_lower in keyword_compare:
-            match_score = len(name_lower) * 3  # Strong match
-        
-        # Check individual words (e.g., "Data Scientist" matches "data.png" or "scientist.png")
-        keyword_words = keyword_compare.split()
-        name_words = name_lower.split()
-        
-        for kw in keyword_words:
-            for nw in name_words:
-                if kw == nw and len(kw) >= 3:
-                    match_score += len(kw) * 4  # Word match is strong
-                elif kw.startswith(nw) or nw.startswith(kw):
-                    if len(kw) >= 3 and len(nw) >= 3:
-                        match_score += min(len(kw), len(nw)) * 2
-        
-        # Check stem matching (e.g., "tester"/"testing", "developer"/"development")
-        keyword_stem = keyword_compare.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
-        name_stem = name_lower.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
-        if len(keyword_stem) >= 3 and keyword_stem == name_stem:
-            match_score += len(keyword_stem) * 3
+        # Special handling for short keywords (2-3 chars like "IT", "QA", "UI")
+        if len(keyword_compare) <= 3:
+            if name_lower == keyword_compare:
+                match_score = 100  # Perfect short match
+            elif keyword_compare in name_lower.split():
+                match_score = 90  # Word match
+            elif keyword_compare in name_lower:
+                match_score = 50  # Contains match
+        else:
+            # Check if keyword contains filename or filename contains keyword
+            if keyword_compare in name_lower:
+                match_score = len(name_lower) * 2  # Prefer longer matches
+            elif name_lower in keyword_compare:
+                match_score = len(name_lower) * 3  # Strong match
+            
+            # Check individual words (e.g., "Data Scientist" matches "data.png" or "scientist.png")
+            keyword_words = keyword_compare.split()
+            name_words = name_lower.split()
+            
+            for kw in keyword_words:
+                for nw in name_words:
+                    if kw == nw and len(kw) >= 2:  # Reduced from 3 to 2
+                        match_score += len(kw) * 4  # Word match is strong
+                    elif kw.startswith(nw) or nw.startswith(kw):
+                        if len(kw) >= 2 and len(nw) >= 2:  # Reduced from 3 to 2
+                            match_score += min(len(kw), len(nw)) * 2
+            
+            # Check stem matching (e.g., "tester"/"testing", "developer"/"development")
+            keyword_stem = keyword_compare.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
+            name_stem = name_lower.rstrip('er').rstrip('ing').rstrip('ment').rstrip('s')
+            if len(keyword_stem) >= 2 and keyword_stem == name_stem:  # Reduced from 3 to 2
+                match_score += len(keyword_stem) * 3
         
         # Update best match if this score is higher
         if match_score > best_match_score:
@@ -411,7 +420,7 @@ def get_keyword_image(keyword):
     # Use exact match if found, otherwise use best partial match
     if matching_file:
         image_path = os.path.join(PHOTOS_DIR, matching_file)
-    elif partial_match and best_match_score >= 3:  # Require minimum score
+    elif partial_match and best_match_score >= 2:  # Reduced from 3 to 2 for short keywords
         matching_file = partial_match
         image_path = os.path.join(PHOTOS_DIR, matching_file)
         print(f"   🔍 Using match '{matching_file}' (score: {best_match_score}) for keyword '{keyword}'")
